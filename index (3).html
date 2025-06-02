@@ -1,0 +1,711 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="TaskWrench: AI-powered assistant for skilled trades professionals. Save time and money with automated scheduling, estimates, and invoicing.">
+    <title>TaskWrench - AI Assistant for Skilled Trades</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Montserrat:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            color: #1A202C;
+            line-height: 1.8;
+            background-color: #F7FAFC;
+        }
+        header {
+            background: linear-gradient(135deg, rgba(74, 85, 104, 0.8), rgba(26, 32, 44, 0.8)), url('https://images.unsplash.com/photo-1517430816045-df4b7de11d1d');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 8rem 2rem;
+            text-align: center;
+            min-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        header h1 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 4.5rem;
+            margin-bottom: 1.5rem;
+            animation: fadeIn 1s ease-in;
+        }
+        header p {
+            font-size: 1.6rem;
+            margin-bottom: 3rem;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .cta-button {
+            background-color: #F6A623;
+            color: #1A202C;
+            padding: 1.2rem 3rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.3s, background-color 0.3s;
+            display: inline-block;
+        }
+        .cta-button:hover {
+            background-color: #E69520;
+            transform: scale(1.1);
+        }
+        nav {
+            background-color: #FFFFFF;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 1.5rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        nav ul {
+            list-style: none;
+            display: flex;
+            justify-content: center;
+            gap: 3rem;
+        }
+        nav a {
+            color: #1A202C;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.1rem;
+            transition: color 0.3s;
+        }
+        nav a:hover {
+            color: #F6A623;
+        }
+        section {
+            padding: 8rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        h2 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 3rem;
+            color: #1A202C;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        .section-intro {
+            font-size: 1.3rem;
+            color: #4A5568;
+            text-align: center;
+            max-width: 800px;
+            margin: 0 auto 4rem;
+        }
+        .trades-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 3rem;
+        }
+        .trade-card {
+            background-color: #FFFFFF;
+            border-radius: 15px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            padding: 3rem;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+        .trade-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        .trade-card h3 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.8rem;
+            color: #4A5568;
+            margin-bottom: 1rem;
+        }
+        .trade-card i {
+            font-size: 2.5rem;
+            color: #F6A623;
+            margin-bottom: 1rem;
+        }
+        .trade-card p {
+            font-size: 1.1rem;
+            color: #4A5568;
+            margin-bottom: 1.5rem;
+        }
+        .trade-details {
+            display: none;
+            background-color: #F7FAFC;
+            border-radius: 10px;
+            padding: 3rem;
+            margin-top: 2rem;
+            border-left: 5px solid #F6A623;
+        }
+        .trade-details h4 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 1.5rem;
+            color: #1A202C;
+            margin-bottom: 1rem;
+        }
+        .trade-details p {
+            font-size: 1.1rem;
+            color: #4A5568;
+            margin-bottom: 1.5rem;
+        }
+        .trade-details ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .trade-details li {
+            font-size: 1.1rem;
+            color: #4A5568;
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+            position: relative;
+        }
+        .trade-details li:before {
+            content: "✔";
+            color: #F6A623;
+            position: absolute;
+            left: 0;
+            font-size: 1.5rem;
+        }
+        .trade-details .faq .question {
+            font-weight: 700;
+            font-size: 1.2rem;
+            color: #1A202C;
+            margin-bottom: 0.5rem;
+        }
+        .how-it-works, .tasks, .roi-calculator, .testimonials, .pricing, .demo-scheduler {
+            background-color: #FFFFFF;
+            border-radius: 15px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+            padding: 6rem 4rem;
+            margin-bottom: 4rem;
+        }
+        .how-it-works ul, .tasks ul {
+            list-style: none;
+            padding-left: 0;
+        }
+        .how-it-works li, .tasks li {
+            font-size: 1.2rem;
+            color: #4A5568;
+            margin-bottom: 1.5rem;
+            padding-left: 2rem;
+            position: relative;
+        }
+        .how-it-works li:before, .tasks li:before {
+            content: "✔";
+            color: #F6A623;
+            position: absolute;
+            left: 0;
+            font-size: 1.5rem;
+        }
+        .video-placeholder {
+            background-color: #E2E8F0;
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+            margin-top: 3rem;
+        }
+        .calculator-form, .demo-form {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .calculator-form input, .demo-form input, .demo-form select {
+            padding: 1rem;
+            border: 2px solid #CBD5E0;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            transition: border-color 0.3s;
+        }
+        .calculator-form input:focus, .demo-form input:focus, .demo-form select:focus {
+            border-color: #F6A623;
+            outline: none;
+        }
+        .calculator-result, .demo-result {
+            margin-top: 2rem;
+            font-size: 1.3rem;
+            color: #4A5568;
+            background-color: #F7FAFC;
+            padding: 1.5rem;
+            border-radius: 8px;
+        }
+        .testimonials-grid, .pricing-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 3rem;
+        }
+        .testimonial-card, .pricing-card {
+            background-color: #F7FAFC;
+            border-radius: 15px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            padding: 3rem;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .testimonial-card:hover, .pricing-card:hover {
+            transform: scale(1.02);
+        }
+        .testimonial-card p {
+            font-style: italic;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+            color: #4A5568;
+        }
+        .testimonial-card cite {
+            font-weight: 700;
+            color: #1A202C;
+            font-size: 1rem;
+        }
+        .pricing-card h3 {
+            font-family: 'Montserrat', sans-serif;
+            font-size: 2rem;
+            color: #1A202C;
+            margin-bottom: 1.5rem;
+        }
+        .pricing-card p {
+            font-size: 1.3rem;
+            color: #4A5568;
+            margin-bottom: 1.5rem;
+        }
+        .pricing-card ul {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 2rem;
+        }
+        .pricing-card li {
+            font-size: 1.1rem;
+            color: #4A5568;
+            margin-bottom: 1rem;
+        }
+        footer {
+            background: linear-gradient(135deg, #1A202C 0%, #4A5568 100%);
+            color: #FFFFFF;
+            padding: 4rem;
+            text-align: center;
+        }
+        footer a {
+            color: #F6A623;
+            text-decoration: none;
+            font-weight: 700;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 768px) {
+            header h1 {
+                font-size: 3rem;
+            }
+            header p {
+                font-size: 1.3rem;
+            }
+            nav ul {
+                flex-direction: column;
+                gap: 1.5rem;
+            }
+            .trades-grid, .testimonials-grid, .pricing-grid {
+                grid-template-columns: 1fr;
+            }
+            section, .how-it-works, .tasks, .roi-calculator, .testimonials, .pricing, .demo-scheduler {
+                padding: 4rem 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>TaskWrench: Empowering Skilled Trades</h1>
+        <p>Save 3 hours daily—$37,500/year—on scheduling, estimates, and invoicing for plumbers, electricians, HVAC pros, and more.</p>
+        <button class="cta-button" onclick="document.getElementById('demo-scheduler').scrollIntoView({behavior: 'smooth'})">Schedule a Free Demo</button>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#trades">Trades We Serve</a></li>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#tasks">What It Does</a></li>
+            <li><a href="#roi-calculator">ROI Calculator</a></li>
+            <li><a href="#testimonials">Testimonials</a></li>
+            <li><a href="#pricing">Pricing</a></li>
+            <li><a href="#demo-scheduler">Demo</a></li>
+        </ul>
+    </nav>
+
+    <section id="trades">
+        <h2>Trades We Serve</h2>
+        <p class="section-intro">From plumbing to roofing, TaskWrench streamlines your business with AI-powered automation tailored to your trade.</p>
+        <div class="trades-grid">
+            <div class="trade-card" onclick="toggleDetails('plumbing-details')">
+                <i class="fas fa-wrench"></i>
+                <h3>Plumbing</h3>
+                <p>Automate pipe repair schedules and invoicing.</p>
+                <div id="plumbing-details" class="trade-details">
+                    <h4>Industry Challenges</h4>
+                    <p>The plumbing industry, valued at $95 billion in 2013, is a cornerstone of skilled trades. Yet, plumbers lose 1–3 hours daily on manual tasks like scheduling and invoicing, costing $10,000–$30,000 annually in lost billable hours. 90% of plumbing businesses report labor shortages, and 85% of clients call within 24 hours of searching online—missed opportunities if you’re bogged down with admin work. 40% of plumbers report inaccurate quotes, losing trust and revenue.</p>
+                    <h4>How TaskWrench Helps</h4>
+                    <ul>
+                        <li>Schedule pipe repairs and drain cleanings in seconds, saving 2 hours/day—$25,000/year at $50/hour.</li>
+                        <li>Generate accurate estimates for water heater installs ($500–$1,500) with 95% accuracy, reducing underquoting by 30%.</li>
+                        <li>Send professional invoices via SMS, paid 50% faster—improving cash flow by $5,000/year.</li>
+                        <li>Track materials for jobs, saving $2,000/year on supplies.</li>
+                        <li>Send automated reminders, reducing no-shows by 40%—worth $3,000/year in recovered bookings.</li>
+                    </ul>
+                    <h4>Case Study: John D., Plumber in Austin, TX</h4>
+                    <p>John, a solo plumber, was losing $37,500/year in billable hours. With TaskWrench, he cut admin time to 30 minutes/day, added $30,000 to his revenue, improved quote accuracy by 95%, and reduced no-shows by 40%.</p>
+                    <h4>Frequently Asked Questions</h4>
+                    <div class="faq">
+                        <p class="question">How quickly can I start using TaskWrench?</p>
+                        <p>Setup takes 5 minutes—just upload your pricing list and connect your calendar.</p>
+                        <p class="question">Does TaskWrench work on my phone?</p>
+                        <p>Yes! Manage jobs on the go via SMS or WhatsApp.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="trade-card" onclick="toggleDetails('electrical-details')">
+                <i class="fas fa-bolt"></i>
+                <h3>Electrical</h3>
+                <p>Streamline wiring quotes and job tracking.</p>
+                <div id="electrical-details" class="trade-details">
+                    <h4>Industry Challenges</h4>
+                    <p>Electricians face a 90% labor shortage, increasing demand for efficiency. Manual scheduling costs $15,000/year in lost time. 80% of electrical jobs are booked within 48 hours of a quote, but 35% of electricians struggle with inaccurate estimates, leading to lost clients.</p>
+                    <h4>How TaskWrench Helps</h4>
+                    <ul>
+                        <li>Book lighting installations 3x faster, saving 1.5 hours/day—$18,750/year at $50/hour.</li>
+                        <li>Create accurate quotes for panel upgrades ($1,200–$3,000) in minutes with 98% accuracy.</li>
+                        <li>Track job progress, reducing callbacks by 30%—saving $4,000/year.</li>
+                        <li>Send invoices instantly, improving cash flow by 25%.</li>
+                        <li>Automate reminders, cutting no-shows by 35%—worth $2,500/year.</li>
+                    </ul>
+                    <h4>Case Study: Sarah K., Electrician in Denver, CO</h4>
+                    <p>Sarah reduced admin time by 2 hours/day, adding $25,000 to her revenue. Her quote accuracy improved by 98%, winning 15% more jobs, and she saved $3,000/year on callbacks.</p>
+                    <h4>Frequently Asked Questions</h4>
+                    <div class="faq">
+                        <p class="question">Can TaskWrench handle complex electrical quotes?</p>
+                        <p>Yes, it uses your pricing data to quote jobs like panel upgrades accurately.</p>
+                        <p class="question">How does it integrate with my calendar?</p>
+                        <p>Connect your Google Calendar in 2 clicks, and TaskWrench syncs automatically.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="trade-card" onclick="toggleDetails('hvac-details')">
+                <i class="fas fa-fan"></i>
+                <h3>HVAC</h3>
+                <p>Optimize maintenance and repair estimates.</p>
+                <div id="hvac-details" class="trade-details">
+                    <h4>Industry Challenges</h4>
+                    <p>HVAC pros spend 20% of their day on admin tasks, losing $20,000/year. 85% of clients call within 24 hours of searching online, and 45% of HVAC businesses report errors in manual estimates, costing $5,000/year in lost jobs.</p>
+                    <h4>How TaskWrench Helps</h4>
+                    <ul>
+                        <li>Schedule AC repairs 4x faster, saving 2 hours/day—$25,000/year.</li>
+                        <li>Generate furnace repair estimates ($300–$800) with real-time pricing, 95% accurate.</li>
+                        <li>Send reminders, reducing no-shows by 40%—worth $3,000/year.</li>
+                        <li>Track maintenance schedules, ensuring timely service and $2,000/year in repeat business.</li>
+                        <li>Invoice instantly, improving cash flow by 20%.</li>
+                    </ul>
+                    <h4>Case Study: Maria S., HVAC Tech in Miami, FL</h4>
+                    <p>Maria cut admin time by 2.5 hours/day, adding $31,250 to her revenue. Her quotes became 95% accurate, and she reduced no-shows by 40%, recovering $4,000 in bookings.</p>
+                    <h4>Frequently Asked Questions</h4>
+                    <div class="faq">
+                        <p class="question">Does TaskWrench support seasonal maintenance?</p>
+                        <p>Yes, it tracks and schedules maintenance, ensuring you never miss a job.</p>
+                        <p class="question">Can I use it for emergency repairs?</p>
+                        <p>Absolutely—schedule urgent jobs in seconds with real-time availability.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="trade-card" onclick="toggleDetails('construction-details')">
+                <i class="fas fa-hammer"></i>
+                <h3>Construction</h3>
+                <p>Manage projects and invoicing efficiently.</p>
+                <div id="construction-details" class="trade-details">
+                    <h4>Industry Challenges</h4>
+                    <p>Construction firms lose 15% of revenue to inefficient admin work—$15,000/year for small businesses. 90% report labor shortages, and 50% struggle with project tracking, leading to delays and $10,000/year in penalties.</p>
+                    <h4>How TaskWrench Helps</h4>
+                    <ul>
+                        <li>Track carpentry projects, saving 3 hours/week—$7,500/year.</li>
+                        <li>Quote concrete work ($5,000–$15,000) with 98% accuracy, winning 20% more jobs.</li>
+                        <li>Invoice clients instantly, improving cash flow by 25%—$5,000/year.</li>
+                        <li>Monitor material usage, reducing waste by 20%—saving $3,000/year.</li>
+                        <li>Send reminders, cutting delays by 30%—worth $4,000/year.</li>
+                    </ul>
+                    <h4>Case Study: Mike T., Contractor in Seattle, WA</h4>
+                    <p>Mike saved 3 hours/week on admin, adding $7,500 to his revenue. His quotes improved by 98%, and he reduced material waste by 20%, saving $3,000/year.</p>
+                    <h4>Frequently Asked Questions</h4>
+                    <div class="faq">
+                        <p class="question">Can TaskWrench manage large projects?</p>
+                        <p>Yes, it tracks tasks, materials, and deadlines for projects of any size.</p>
+                        <p class="question">Does it support team collaboration?</p>
+                        <p>Yes, our Enterprise plan lets teams share schedules and updates.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="trade-card" onclick="toggleDetails('landscaping-details')">
+                <i class="fas fa-leaf"></i>
+                <h3>Landscaping</h3>
+                <p>Simplify scheduling for lawn care.</p>
+                <div id="landscaping-details" class="trade-details">
+                    <h4>Industry Challenges</h4>
+                    <p>Landscapers spend 2 hours/day on scheduling, losing $12,000/year. 97% of clients search online for services, and 40% of landscapers report no-shows, costing $3,000/year in lost jobs.</p>
+                    <h4>How TaskWrench Helps</h4>
+                    <ul>
+                        <li>Book tree trimming jobs 5x faster, saving 1 hour/day—$12,500/year.</li>
+                        <li>Estimate hardscaping projects ($2,000–$10,000) in minutes with 95% accuracy.</li>
+                        <li>Send digital invoices, paid 60% faster—improving cash flow by $4,000/year.</li>
+                        <li>Track materials, saving $1,500/year on over-ordering.</li>
+                        <li>Reduce no-shows by 40%—worth $3,000/year in recovered bookings.</li>
+                    </ul>
+                    <h4>Case Study: Emma L., Landscaper in Portland, OR</h4>
+                    <p>Emma saved 1 hour/day on scheduling, adding $12,500 to her revenue. Her invoices were paid 60% faster, and she recovered $3,000 in bookings by reducing no-shows.</p>
+                    <h4>Frequently Asked Questions</h4>
+                    <div class="faq">
+                        <p class="question">Can TaskWrench handle seasonal jobs?</p>
+                        <p>Yes, it schedules recurring lawn care and seasonal projects effortlessly.</p>
+                        <p class="question">How does it help with client communication?</p>
+                        <p>It sends automated reminders and invoices via SMS or email.</p>
+                    </div>
+                </div>
+            </div>
+            <div class="trade-card" onclick="toggleDetails('roofing-details')">
+                <i class="fas fa-home"></i>
+                <h3>Roofing</h3>
+                <p>Automate estimates for shingle repairs.</p>
+                <div id="roofing-details" class="trade-details">
+                    <h4>Industry Challenges</h4>
+                    <p>Roofers lose $18,000/year to manual processes. 80% of jobs are booked within 48 hours of a quote, but 45% of roofers report errors in estimates, costing $4,000/year in lost jobs.</p>
+                    <h4>How TaskWrench Helps</h4>
+                    <ul>
+                        <li>Schedule shingle replacements 3x faster, saving 1.5 hours/day—$18,750/year.</li>
+                        <li>Quote leak repairs ($500–$2,000) with 90% accuracy, winning 15% more jobs.</li>
+                        <li>Track materials, reducing waste by 20%—saving $2,500/year.</li>
+                        <li>Send invoices instantly, improving cash flow by 20%.</li>
+                        <li>Reduce no-shows by 35%—worth $2,500/year.</li>
+                    </ul>
+                    <h4>Case Study: Tom R., Roofer in Chicago, IL</h4>
+                    <p>Tom saved 1.5 hours/day, adding $18,750 to his revenue. He reduced material waste by 20%, saving $2,500/year, and improved cash flow by 20% with faster payments.</p>
+                    <h4>Frequently Asked Questions</h4>
+                    <div class="faq">
+                        <p class="question">Can TaskWrench estimate complex roofing jobs?</p>
+                        <p>Yes, it uses your pricing data to quote jobs like full roof replacements accurately.</p>
+                        <p class="question">Does it help with material management?</p>
+                        <p>Yes, it tracks materials to prevent over-ordering, saving you money.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="how-it-works" class="how-it-works">
+        <h2>How TaskWrench Works</h2>
+        <p class="section-intro">Discover how our AI assistant saves you time and money with simple, powerful automation.</p>
+        <p>TaskWrench is like having a full-time assistant who knows your trade inside and out—but without the extra payroll. It uses artificial intelligence (AI) to understand your business data, like your pricing lists, job schedules, and client details. Then, it automates the repetitive tasks that eat up your day, so you can focus on what you do best: fixing pipes, wiring homes, or installing HVAC systems.</p>
+        <ul>
+            <li><strong>Step 1: Quick Setup (5 Minutes)</strong> - Upload your business info (like pricing lists or your Google Calendar) to TaskWrench. It’s as easy as attaching a file to an email.</li>
+            <li><strong>Step 2: Chat with TaskWrench</strong> - Talk to TaskWrench on your phone or computer, just like texting a friend. Ask it to schedule a job, create a quote, or send an invoice.</li>
+            <li><strong>Step 3: Get Back to Work</strong> - TaskWrench handles the busywork in seconds, saving you hours every day. You get more jobs done and keep your clients happy.</li>
+        </ul>
+        <div class="video-placeholder">
+            <p>Watch a 2-minute video demo of TaskWrench in action. [Placeholder for video]</p>
+        </div>
+    </section>
+
+    <section id="tasks" class="tasks">
+        <h2>What Tasks Can TaskWrench Perform?</h2>
+        <p class="section-intro">TaskWrench handles the time-consuming tasks that slow you down, so you can grow your business without the hassle.</p>
+        <ul>
+            <li><strong>Schedule Jobs Instantly</strong> - Tell TaskWrench, “Book a pipe repair for tomorrow,” and it checks your calendar, finds an open slot, and confirms the job—all in under 10 seconds.</li>
+            <li><strong>Create Accurate Estimates</strong> - Ask, “How much for a water heater install?” TaskWrench uses your pricing data to give a spot-on quote ($500–$1,500 for plumbing) in minutes, with 95% accuracy.</li>
+            <li><strong>Send Professional Invoices</strong> - Say, “Invoice my last job for $800.” TaskWrench creates a polished invoice and sends it via SMS or email, getting you paid 50% faster.</li>
+            <li><strong>Track Materials and Jobs</strong> - Need to know what pipes you used last week? TaskWrench keeps track of materials and job details, saving you $2,000/year on over-ordering.</li>
+            <li><strong>Send Automated Reminders</strong> - TaskWrench texts your clients a day before their job, reducing no-shows by 40%—worth $3,000/year in recovered bookings.</li>
+            <li><strong>Provide Business Insights</strong> - Ask, “How much did I earn this month?” TaskWrench analyzes your jobs and invoices, giving you a clear financial snapshot to plan ahead.</li>
+        </ul>
+        <div style="text-align: center; margin-top: 3rem;">
+            <button class="cta-button" onclick="document.getElementById('demo-scheduler').scrollIntoView({behavior: 'smooth'})">Schedule a Free Demo</button>
+        </div>
+    </section>
+
+    <section id="roi-calculator" class="roi-calculator">
+        <h2>Calculate Your Savings</h2>
+        <p class="section-intro">See how much time and money TaskWrench can save your business annually.</p>
+        <div class="calculator-form">
+            <input type="number" id="admin-hours" placeholder="Daily Admin Hours (e.g., 3)" min="0">
+            <input type="number" id="hourly-rate" placeholder="Hourly Rate (e.g., 50)" min="0">
+            <button class="cta-button" onclick="calculateROI()">Calculate Savings</button>
+        </div>
+        <div id="calculator-result" class="calculator-result"></div>
+    </section>
+
+    <section id="testimonials" class="testimonials">
+        <h2>What Trades Professionals Say</h2>
+        <p class="section-intro">Hear from plumbers, electricians, and more about how TaskWrench transformed their businesses.</p>
+        <div class="testimonials-grid">
+            <div class="testimonial-card">
+                <p>"TaskWrench saved me 3 hours a day on scheduling and invoicing. I’ve added $20,000 to my annual revenue!"</p>
+                <cite>John D., Plumber, Austin, TX</cite>
+            </div>
+            <div class="testimonial-card">
+                <p>"Estimating HVAC repairs used to take hours. Now it’s minutes, and my quotes are 98% accurate."</p>
+                <cite>Maria S., HVAC Tech, Miami, FL</cite>
+            </div>
+            <div class="testimonial-card">
+                <p>"As a roofer, I love how TaskWrench tracks my jobs. I’ve reduced material waste by 25%."</p>
+                <cite>Tom R., Roofer, Chicago, IL</cite>
+            </div>
+            <div class="testimonial-card">
+                <p>"TaskWrench cut my admin time in half. I’ve added $15,000 to my revenue this year."</p>
+                <cite>Emma L., Landscaper, Portland, OR</cite>
+            </div>
+        </div>
+    </section>
+
+    <section id="pricing" class="pricing">
+        <h2>Choose Your Plan</h2>
+        <p class="section-intro">TaskWrench saves you 3 hours daily—worth $37,500/year at $50/hour. Pick a plan that fits your business.</p>
+        <div class="pricing-grid">
+            <div class="pricing-card">
+                <h3>Free</h3>
+                <p>$0/month</p>
+                <ul>
+                    <li>Basic scheduling (5 jobs/month)</li>
+                    <li>Limited estimates</li>
+                    <li>Email support</li>
+                </ul>
+                <button class="cta-button">Start Free</button>
+            </div>
+            <div class="pricing-card">
+                <h3>Premium</h3>
+                <p>$49/month</p>
+                <ul>
+                    <li>Unlimited scheduling</li>
+                    <li>Accurate estimates</li>
+                    <li>Professional invoicing</li>
+                    <li>Material tracking</li>
+                    <li>Priority support</li>
+                </ul>
+                <button class="cta-button">Get Premium</button>
+            </div>
+            <div class="pricing-card">
+                <h3>Enterprise</h3>
+                <p>$99/month</p>
+                <ul>
+                    <li>All Premium features</li>
+                    <li>Team access (5+ users)</li>
+                    <li>Advanced analytics</li>
+                    <li>Custom integrations</li>
+                    <li>Dedicated account manager</li>
+                </ul>
+                <button class="cta-button" onclick="document.getElementById('demo-scheduler').scrollIntoView({behavior: 'smooth'})">Contact Us</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="demo-scheduler" class="demo-scheduler">
+        <h2>Schedule a Free Demo</h2>
+        <p class="section-intro">See TaskWrench in action and learn how it can save you time and money.</p>
+        <div class="demo-form">
+            <input type="text" id="demo-name" placeholder="Your Name">
+            <input type="email" id="demo-email" placeholder="Your Email">
+            <select id="demo-trade">
+                <option value="">Select Your Trade</option>
+                <option value="plumbing">Plumbing</option>
+                <option value="electrical">Electrical</option>
+                <option value="hvac">HVAC</option>
+                <option value="construction">Construction</option>
+                <option value="landscaping">Landscaping</option>
+                <option value="roofing">Roofing</option>
+            </select>
+            <button class="cta-button" onclick="scheduleDemo()">Schedule Demo</button>
+        </div>
+        <div id="demo-result" class="demo-result"></div>
+    </section>
+
+    <footer>
+        <p>© 2025 TaskWrench. All rights reserved.</p>
+        <p><a href="mailto:support@taskwrench.ai">support@taskwrench.ai</a> | <a href="#top">Back to Top</a></p>
+    </footer>
+
+    <script>
+        function toggleDetails(detailsId) {
+            const details = document.getElementById(detailsId);
+            const isVisible = details.style.display === 'block';
+            document.querySelectorAll('.trade-details').forEach(detail => {
+                detail.style.display = 'none';
+            });
+            details.style.display = isVisible ? 'none' : 'block';
+        }
+
+        function calculateROI() {
+            const hours = parseFloat(document.getElementById('admin-hours').value) || 0;
+            const rate = parseFloat(document.getElementById('hourly-rate').value) || 0;
+            const daysPerYear = 250;
+            const hoursSaved = hours * 0.8;
+            const annualSavings = hoursSaved * rate * daysPerYear;
+            const result = annualSavings > 0
+                ? `You could save $${annualSavings.toFixed(2)} per year with TaskWrench!`
+                : 'Please enter valid numbers to calculate your savings.';
+            document.getElementById('calculator-result').innerText = result;
+        }
+
+        function scheduleDemo() {
+            const name = document.getElementById('demo-name').value;
+            const email = document.getElementById('demo-email').value;
+            const trade = document.getElementById('demo-trade').value;
+            const result = name && email && trade
+                ? `Thank you, ${name}! We’ll contact you at ${email} to schedule a demo for your ${trade} business.`
+                : 'Please fill out all fields to schedule a demo.';
+            document.getElementById('demo-result').innerText = result;
+        }
+    </script>
+</body>
+</html>
